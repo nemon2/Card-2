@@ -11,8 +11,8 @@ from typing import Callable
 from reportlab.lib.colors import Color
 from reportlab.lib.units import mm
 
-from . import icons
-from .config import hx
+from . import dotaart, icons
+from .config import CARD_H, PIP_BOT, PIP_SIZE, PIP_TOP, hx
 
 PAPER = hx("#ffffff")
 TRIM = hx("#c8c8c8")
@@ -37,6 +37,12 @@ class Theme:
     pip_scale: float = 1.0
     draw_index_mark: Callable = None   # overrides the classic suit glyph
     corner: Callable = None
+    rotate_lower_pips: bool = True
+    character: bool = True
+    rank_pips: Callable = None   # (c, size, rank, index) -> draws per-rank art
+    pip_top: float = PIP_TOP
+    pip_bot: float = PIP_BOT
+    pip_size: float = PIP_SIZE
 
 
 # --- Hollow Knight ----------------------------------------------------------
@@ -106,6 +112,9 @@ THEMES = {
         rank_font="Grenze", label_font="Grenze",
         ink=DT_INK, index=DT_LOGO, suit_color=DT_LOGO, frame=DT_GOLD,
         draw_pip=lambda c, s: icons.dota_logo(c, s, DT_LOGO, PAPER),
+        rank_pips=dotaart.draw_rank_pip,
+        rotate_lower_pips=False, character=False,
+        pip_top=CARD_H - 20.9 * mm, pip_bot=20.9 * mm, pip_size=11.0 * mm,
         draw_index_mark=lambda c, s: icons.dota_logo(c, s, DT_LOGO, PAPER),
         label_size=7.2, label_tracking=2.2, rank_scale=1.0, pip_scale=1.0,
         corner=_dt_corner,

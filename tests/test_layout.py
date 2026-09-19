@@ -61,6 +61,10 @@ def test_every_card_has_its_own_character():
 
 
 def test_character_band_is_clear_of_pips_and_trim():
+    """Checked against the default pip field, which the mascot suits use.
+
+    Dota overrides the field on its theme because it carries no character.
+    """
     top = CHAR_CY + CHAR_SIZE / 2
     bottom = CHAR_CY - CHAR_SIZE / 2
     assert bottom >= SAFE, "character would sit in the cutting margin"

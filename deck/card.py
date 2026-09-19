@@ -8,8 +8,8 @@ from . import suits
 from .characters import draw_character
 from .config import (CARD_H, CARD_W, CHAR_CY, CHAR_SIZE, FRAME_INSET, FRAME_R,
                      INDEX_RANK_BASE, INDEX_RANK_SIZE, INDEX_SUIT_SIZE,
-                     INDEX_SUIT_Y, LABEL_BASE, PIP_BOT, PIP_HALF_SPAN,
-                     PIP_SIZE, PIP_TOP, TRIM_LINE, rounded_rect_path, state)
+                     INDEX_SUIT_Y, LABEL_BASE, PIP_HALF_SPAN, TRIM_LINE,
+                     rounded_rect_path, state)
 from .themes import PAPER, TRIM
 
 L, C, R = -1.0, 0.0, 1.0
@@ -63,15 +63,18 @@ def _draw_index(c, theme, rank):
 
 
 def _draw_pips(c, theme, rank):
-    span = PIP_TOP - PIP_BOT
-    for col, frac in PIP_LAYOUTS[rank]:
+    span = theme.pip_top - theme.pip_bot
+    for i, (col, frac) in enumerate(PIP_LAYOUTS[rank]):
         x = CARD_W / 2 + col * PIP_HALF_SPAN
-        y = PIP_TOP - frac * span
+        y = theme.pip_top - frac * span
         with state(c):
             c.translate(x, y)
-            if frac > 0.5:
+            if frac > 0.5 and theme.rotate_lower_pips:
                 c.rotate(180)
-            theme.draw_pip(c, PIP_SIZE * theme.pip_scale)
+            if theme.rank_pips:
+                theme.rank_pips(c, theme.pip_size * theme.pip_scale, rank, i)
+            else:
+                theme.draw_pip(c, theme.pip_size * theme.pip_scale)
 
 
 def _draw_frame(c, theme):
@@ -121,6 +124,8 @@ def draw_card(c, theme, rank):
         _tracked_centred(c, theme.game, theme.label_font, theme.label_size,
                          CARD_W / 2, LABEL_BASE, theme.label_tracking)
 
-    with state(c):
-        c.translate(CARD_W / 2, CHAR_CY)
-        draw_character(c, theme.suit, rank, CHAR_SIZE, theme.ink, theme.frame, PAPER)
+    if theme.character:
+        with state(c):
+            c.translate(CARD_W / 2, CHAR_CY)
+            draw_character(c, theme.suit, rank, CHAR_SIZE, theme.ink,
+                           theme.frame, PAPER)
