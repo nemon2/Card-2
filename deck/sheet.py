@@ -7,6 +7,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
 from .card import draw_card
+from . import composed
 from .imagecards import load_all
 from .config import (CARD_H, CARD_W, COLS, PAGE_H, PAGE_W, RANKS, ROWS,
                      register_fonts, state)
@@ -60,8 +61,10 @@ def build_images(out_path, gap=0.0, marks=True, ranks=None):
     The images go down as they are: fitted to the card slot, never stretched
     and never cropped.
     """
+    register_fonts()
     cards = load_all()
-    order = [r for r in (ranks or RANKS) if r in cards]
+    order = [r for r in (ranks or RANKS)
+             if r in cards or r in composed.LAYOUT]
 
     c = canvas.Canvas(out_path, pagesize=(PAGE_W, PAGE_H))
     c.setTitle("Dota 2 playing cards")
@@ -75,7 +78,12 @@ def build_images(out_path, gap=0.0, marks=True, ranks=None):
             row, col = divmod(idx, COLS)
             x = ox + col * (CARD_W + gap)
             y = oy + (ROWS - 1 - row) * (CARD_H + gap)
-            c.drawImage(ImageReader(cards[rank]), x, y, CARD_W, CARD_H)
+            with state(c):
+                c.translate(x, y)
+                if rank in composed.LAYOUT:
+                    composed.draw(c, rank)
+                else:
+                    c.drawImage(ImageReader(cards[rank]), 0, 0, CARD_W, CARD_H)
             _trim_line(c, x, y)
         if marks:
             _crop_marks(c, gap)
