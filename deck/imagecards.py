@@ -9,7 +9,6 @@ the card face is cropped away.
 from __future__ import annotations
 
 import os
-from collections import Counter
 
 import numpy as np
 from PIL import Image
@@ -36,10 +35,16 @@ def _ring_pixels(a, frac=RING):
     ])
 
 
-def _is_full_bleed(a):
+def _on_studio_background(a):
+    """True when the card sits on a flat background rather than filling the frame.
+
+    Measured against the corner colour: a studio shot leaves a wide margin of
+    it, while a full-bleed card matches it only in the slivers outside its own
+    rounded corners.
+    """
     corners = np.array([a[0, 0], a[0, -1], a[-1, 0], a[-1, -1]], dtype=float)
     bg = np.median(corners, axis=0)
-    return (np.abs(a - bg).max(axis=2) <= BG_TOL).mean() < 0.02
+    return (np.abs(a - bg).max(axis=2) <= BG_TOL).mean() >= 0.02
 
 
 def _solidify(mask):
@@ -71,16 +76,43 @@ def _face_mask(a):
     return _solidify(bright if bright.sum() >= dark.sum() else dark)
 
 
+def _face_colour(a):
+    """The card's own background - the colour that dominates the whole face."""
+    quant = (a.astype(np.int32) // 8 * 8).reshape(-1, 3)
+    keys, counts = np.unique(quant, axis=0, return_counts=True)
+    return tuple(int(v) for v in keys[counts.argmax()])
+
+
+def _trim_to_face(im, tol=18, keep=0.5):
+    """Shave edge lines that are not mostly the card's own background.
+
+    The luminance mask can run a little past the card where the studio
+    background carries a gradient; this pulls the crop back to the face.
+    """
+    a = np.asarray(im).astype(np.int16)
+    face = np.asarray(_face_colour(a), dtype=np.int16)
+    near = np.abs(a - face).max(axis=2) <= tol
+    h, w = near.shape
+    top, bottom, left, right = 0, h - 1, 0, w - 1
+    while top < bottom and near[top, left:right + 1].mean() < keep:
+        top += 1
+    while bottom > top and near[bottom, left:right + 1].mean() < keep:
+        bottom -= 1
+    while left < right and near[top:bottom + 1, left].mean() < keep:
+        left += 1
+    while right > left and near[top:bottom + 1, right].mean() < keep:
+        right -= 1
+    return im.crop((left, top, right + 1, bottom + 1))
+
+
 def _pad_colour(im):
-    """Most common colour a little inside the card edge."""
-    a = np.asarray(im)
-    h, w, _ = a.shape
-    inset = max(2, int(min(w, h) * 0.05))
-    ring = np.concatenate([
-        a[inset, inset:w - inset], a[h - 1 - inset, inset:w - inset],
-        a[inset:h - inset, inset], a[inset:h - inset, w - 1 - inset],
-    ])
-    return Counter(tuple((p // 8 * 8).tolist()) for p in ring).most_common(1)[0][0]
+    """The card's own background, used to extend it to the card's shape.
+
+    Taken over the whole face rather than a ring just inside the edge: a ring
+    can land on a vignette or a frame and then the added band reads as a
+    different shade from the card it is extending.
+    """
+    return _face_colour(np.asarray(im).astype(np.int16))
 
 
 def _clean_edges(im, pad):
@@ -96,32 +128,36 @@ def _clean_edges(im, pad):
     return Image.fromarray(a.astype(np.uint8))
 
 
-def prepare(path):
+def prepare(path, report=None):
     """Trim one source image to the card face and letterbox it to card shape."""
     im = Image.open(path).convert("RGB")
     a = np.asarray(im).astype(float)
 
-    if not _is_full_bleed(a):
-        mask = _face_mask(a)
-        ys, xs = np.nonzero(mask)
-        im = im.crop((int(xs.min()), int(ys.min()),
-                      int(xs.max()) + 1, int(ys.max()) + 1))
-        im = _clean_edges(im, _pad_colour(im))
-
+    if _on_studio_background(a):
+        ys, xs = np.nonzero(_face_mask(a))
+        box = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
+        # crop to the card, then pull the crop back to the face in case the
+        # background carried a gradient the luminance mask ran past
+        im = _trim_to_face(im.crop(box))
     pad = _pad_colour(im)
+    im = _clean_edges(im, pad)
+
     w, h = im.size
     target = (w, round(w / CARD_AR)) if w / h > CARD_AR else (round(h * CARD_AR), h)
     out = Image.new("RGB", target, pad)
     out.paste(im, ((target[0] - w) // 2, (target[1] - h) // 2))
+    if report is not None:
+        grew = max(target[0] / w, target[1] / h) - 1.0
+        report[os.path.basename(path)] = (w, h, w / h, grew)
     return out
 
 
-def load_all():
+def load_all(report=None):
     """{rank: prepared image} for every source card present."""
     cards = {}
     for name in sorted(os.listdir(SRC_DIR)):
         if not name.lower().endswith((".png", ".jpg", ".jpeg")):
             continue
         cards[str(int(os.path.splitext(name)[0]))] = prepare(
-            os.path.join(SRC_DIR, name))
+            os.path.join(SRC_DIR, name), report)
     return cards
