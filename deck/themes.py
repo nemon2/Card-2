@@ -33,8 +33,10 @@ class Theme:
     label_size: float = 5.4
     label_tracking: float = 1.4
     rank_scale: float = 1.0
-    index_x: float = 6.9 * mm
+    index_x: float = 9.0 * mm
     pip_scale: float = 1.0
+    draw_index_mark: Callable = None   # overrides the classic suit glyph
+    corner: Callable = None
 
 
 # --- Hollow Knight ----------------------------------------------------------
@@ -58,6 +60,24 @@ DT_GOLD_D = hx("#66380f")
 DT_GOLD_L = hx("#ffe9a8")
 DT_DARK = hx("#a52424")
 DT_EMBER = hx("#d9822c")
+DT_LOGO = hx("#d6332b")
+
+
+def _dt_corner(c, w, h):
+    """Gold brackets at all four corners of the frame."""
+    from .config import FRAME_INSET, path, state
+    i = FRAME_INSET + 1.1 * mm
+    L = 7.0 * mm
+    with state(c):
+        c.setStrokeColor(DT_GOLD)
+        c.setLineWidth(1.0)
+        c.setLineCap(0)
+        for ox, oy, sx, sy in ((i, i, 1, 1), (w - i, i, -1, 1),
+                               (i, h - i, 1, -1), (w - i, h - i, -1, -1)):
+            with state(c):
+                c.translate(ox, oy)
+                c.scale(sx, sy)
+                c.drawPath(path(c, ("m", 0, L), ("l", 0, 0), ("l", L, 0)), fill=0, stroke=1)
 
 # --- Apex Legends -----------------------------------------------------------
 AP_INK = hx("#8c2a14")
@@ -83,11 +103,12 @@ THEMES = {
     ),
     "hearts": Theme(
         key="dota-2", suit="hearts", game="DOTA 2",
-        rank_font="Cinzel", label_font="Marcellus",
-        ink=DT_INK, index=DT_RED, suit_color=DT_RED, frame=DT_GOLD,
-        draw_pip=lambda c, s: icons.dota_immortal(
-            c, s, DT_GOLD, DT_GOLD_D, DT_DARK, DT_EMBER, DT_GOLD_L),
-        label_size=5.2, label_tracking=2.0, pip_scale=0.90,
+        rank_font="Grenze", label_font="Grenze",
+        ink=DT_INK, index=DT_LOGO, suit_color=DT_LOGO, frame=DT_GOLD,
+        draw_pip=lambda c, s: icons.dota_logo(c, s, DT_LOGO, PAPER),
+        draw_index_mark=lambda c, s: icons.dota_logo(c, s, DT_LOGO, PAPER),
+        label_size=7.2, label_tracking=2.2, rank_scale=1.0, pip_scale=1.0,
+        corner=_dt_corner,
     ),
     "diamonds": Theme(
         key="apex-legends", suit="diamonds", game="APEX LEGENDS",
@@ -98,4 +119,7 @@ THEMES = {
     ),
 }
 
-SUIT_ORDER = ("spades", "clubs", "hearts", "diamonds")
+#: Only Dota is finished under the new template; the others still build
+#: with their own marks via --suits.
+SUIT_ORDER = ("hearts",)
+ALL_SUITS = ("spades", "clubs", "hearts", "diamonds")

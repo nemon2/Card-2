@@ -223,3 +223,44 @@ def apex_mark(c, size, main, dark, light):
         c.setStrokeColor(dark)
         c.setLineWidth(0.038)
         c.drawPath(body, fill=1, stroke=1)
+
+
+# --- Dota 2: the logo mark --------------------------------------------------
+#: A rough-edged square cut by two diagonal stripes. The three light shapes are
+#: 180-degree rotations of each other, exactly as the real mark is built.
+def _dota_plate(c):
+    return path(
+        c,
+        ("m", -0.500, -0.455),
+        ("l", -0.472, -0.020), ("l", -0.500, 0.200), ("l", -0.462, 0.500),
+        ("l", -0.100, 0.470), ("l", 0.160, 0.500), ("l", 0.500, 0.458),
+        ("l", 0.472, 0.100), ("l", 0.500, -0.160), ("l", 0.458, -0.500),
+        ("l", 0.080, -0.470), ("l", -0.180, -0.500),
+        ("z",),
+    )
+
+
+def dota_logo(c, size, red, light):
+    """Red plate cut by two diagonal stripes into three light shapes.
+
+    The band and the two counters are 180-degree rotations of one another,
+    the way the real mark is built; red stays dominant.
+    """
+    with state(c):
+        c.scale(size, size)
+        c.setLineJoin(0)
+        c.setFillColor(red)
+        c.drawPath(_dota_plate(c), fill=1, stroke=0)
+
+        c.setFillColor(light)
+        c.drawPath(path(c,
+                        ("m", -0.058, 0.360), ("l", 0.360, -0.271),
+                        ("l", 0.360, -0.360), ("l", 0.058, -0.360),
+                        ("l", -0.360, 0.271), ("l", -0.360, 0.360), ("z",)),
+                   fill=1, stroke=0)
+        for sx in (1.0, -1.0):
+            c.drawPath(path(c,
+                            ("m", 0.093 * sx, 0.360 * sx),
+                            ("l", 0.360 * sx, 0.360 * sx),
+                            ("l", 0.360 * sx, -0.043 * sx), ("z",)),
+                       fill=1, stroke=0)

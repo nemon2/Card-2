@@ -25,13 +25,13 @@ RANKS = ("2", "3", "4", "5", "6", "7", "8", "9", "10")
 # Nothing meaningful is drawn inside this band, so a 1-1.5 mm cutting error
 # never clips artwork.
 SAFE = 4.0 * mm
-FRAME_INSET = 3.2 * mm
+FRAME_INSET = 2.6 * mm
 FRAME_R = 2.6 * mm
 
 # --- Pip field -------------------------------------------------------------
 PIP_TOP = CARD_H - 26.0 * mm                # centre of the top pip row
 PIP_BOT = 26.0 * mm                         # centre of the bottom pip row
-PIP_HALF_SPAN = 14.0 * mm                   # left/right column offset
+PIP_HALF_SPAN = 12.5 * mm                   # left/right column offset
 PIP_SIZE = 9.0 * mm                        # icon bounding box
 
 # Easter-egg character, sitting in the clear band below the bottom pip row.
@@ -39,11 +39,14 @@ CHAR_CY = 12.3 * mm
 CHAR_SIZE = 15.5 * mm
 
 # --- Corner index ----------------------------------------------------------
-INDEX_X = 6.9 * mm                          # centre line of the index column
-INDEX_RANK_TOP = CARD_H - 6.2 * mm          # top of the rank glyph
-INDEX_RANK_SIZE = 20.5                      # points
-INDEX_SUIT_SIZE = 5.0 * mm
-INDEX_SUIT_Y = CARD_H - 18.2 * mm
+INDEX_X = 7.6 * mm                          # centre line of the index column
+# The rank sits on an explicit baseline rather than one derived from the font
+# ascent: display faces carry tall ascenders that digits never use, which would
+# push the number down into the suit mark.
+INDEX_RANK_BASE = CARD_H - 14.1 * mm
+INDEX_RANK_SIZE = 30.0                      # points - the rank reads large
+INDEX_SUIT_SIZE = 6.4 * mm
+INDEX_SUIT_Y = CARD_H - 19.1 * mm
 
 # Game wordmark, centred just inside the top of the frame.
 LABEL_BASE = CARD_H - 7.8 * mm
@@ -59,6 +62,8 @@ _FONT_FILES = {
     "Russo": "RussoOne.ttf",
     "Marcellus": "MarcellusSC.ttf",
     "Bebas": "BebasNeue.ttf",
+    "Grenze": "GrenzeGotisch-Bold.ttf",
+    "Metamorphous": "Metamorphous.ttf",
 }
 
 _registered = False

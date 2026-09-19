@@ -7,7 +7,7 @@ from reportlab.pdfbase import pdfmetrics
 from . import suits
 from .characters import draw_character
 from .config import (CARD_H, CARD_W, CHAR_CY, CHAR_SIZE, FRAME_INSET, FRAME_R,
-                     INDEX_RANK_SIZE, INDEX_RANK_TOP, INDEX_SUIT_SIZE,
+                     INDEX_RANK_BASE, INDEX_RANK_SIZE, INDEX_SUIT_SIZE,
                      INDEX_SUIT_Y, LABEL_BASE, PIP_BOT, PIP_HALF_SPAN,
                      PIP_SIZE, PIP_TOP, TRIM_LINE, rounded_rect_path, state)
 from .themes import PAPER, TRIM
@@ -50,15 +50,16 @@ def _draw_index(c, theme, rank):
     width = pdfmetrics.stringWidth(rank, theme.rank_font, size)
     if width > MAX_INDEX_W:
         size *= MAX_INDEX_W / width
-    baseline = INDEX_RANK_TOP - pdfmetrics.getAscent(theme.rank_font, size)
-
     with state(c):
         c.setFont(theme.rank_font, size)
         c.setFillColor(theme.index)
-        c.drawCentredString(theme.index_x, baseline, rank)
+        c.drawCentredString(theme.index_x, INDEX_RANK_BASE, rank)
     with state(c):
         c.translate(theme.index_x, INDEX_SUIT_Y)
-        suits.draw_suit(c, theme.suit, INDEX_SUIT_SIZE, theme.suit_color)
+        if theme.draw_index_mark:
+            theme.draw_index_mark(c, INDEX_SUIT_SIZE)
+        else:
+            suits.draw_suit(c, theme.suit, INDEX_SUIT_SIZE, theme.suit_color)
 
 
 def _draw_pips(c, theme, rank):
@@ -88,6 +89,15 @@ def _draw_frame(c, theme):
             rounded_rect_path(c, i, i, CARD_W - 2 * i, CARD_H - 2 * i, FRAME_R),
             fill=0, stroke=1,
         )
+        c.setLineWidth(0.35)
+        c.setStrokeAlpha(0.55)
+        j = i + 1.1 * mm
+        c.drawPath(
+            rounded_rect_path(c, j, j, CARD_W - 2 * j, CARD_H - 2 * j, FRAME_R * 0.7),
+            fill=0, stroke=1,
+        )
+    if theme.corner:
+        theme.corner(c, CARD_W, CARD_H)
 
 
 def draw_card(c, theme, rank):
