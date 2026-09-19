@@ -4,7 +4,10 @@ from __future__ import annotations
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
+from reportlab.lib.utils import ImageReader
+
 from .card import draw_card
+from .imagecards import load_all
 from .config import (CARD_H, CARD_W, COLS, PAGE_H, PAGE_W, RANKS, ROWS,
                      register_fonts, state)
 from .themes import SUIT_ORDER, THEMES
@@ -36,15 +39,53 @@ def _crop_marks(c, gap):
             c.line(ox + bw + MARK_OFF, y, ox + bw + MARK_OFF + MARK_LEN, y)
 
 
-def _caption(c, theme, gap):
-    ox, oy, bw, bh = _grid_origin(gap)
+def _caption(c, gap, text):
+    ox, oy, _, _ = _grid_origin(gap)
     with state(c):
         c.setFillColorRGB(0.42, 0.42, 0.42)
         c.setFont("Helvetica", 5.6)
-        c.drawString(ox, oy - 9.0 * mm,
-                     f"{theme.game.title()}  -  {theme.suit}  2-10   "
-                     f"card 63.5 x 88.9 mm (poker / Bicycle)   "
-                     f"print at 100%, no scaling")
+        c.drawString(ox, oy - 9.0 * mm, text)
+
+
+def _trim_line(c, x, y):
+    with state(c):
+        c.setStrokeColorRGB(0.78, 0.78, 0.78)
+        c.setLineWidth(0.25)
+        c.rect(x, y, CARD_W, CARD_H, fill=0, stroke=1)
+
+
+def build_images(out_path, gap=0.0, marks=True, ranks=None):
+    """Lay the supplied card artwork onto A4 at exact card size.
+
+    The images go down as they are: fitted to the card slot, never stretched
+    and never cropped.
+    """
+    cards = load_all()
+    order = [r for r in (ranks or RANKS) if r in cards]
+
+    c = canvas.Canvas(out_path, pagesize=(PAGE_W, PAGE_H))
+    c.setTitle("Dota 2 playing cards")
+    c.setSubject("Print-and-play card sheets, poker size")
+
+    ox, oy, _, _ = _grid_origin(gap)
+    per_page = COLS * ROWS
+    for start in range(0, len(order), per_page):
+        chunk = order[start:start + per_page]
+        for idx, rank in enumerate(chunk):
+            row, col = divmod(idx, COLS)
+            x = ox + col * (CARD_W + gap)
+            y = oy + (ROWS - 1 - row) * (CARD_H + gap)
+            c.drawImage(ImageReader(cards[rank]), x, y, CARD_W, CARD_H)
+            _trim_line(c, x, y)
+        if marks:
+            _crop_marks(c, gap)
+            _caption(c, gap,
+                     "Dota 2  -  " + ", ".join(chunk) +
+                     "   card 63.5 x 88.9 mm (poker / Bicycle)"
+                     "   print at 100%, no scaling")
+        c.showPage()
+    c.save()
+    return out_path
 
 
 def build_singles(out_path, suits_=SUIT_ORDER, ranks=RANKS):
@@ -81,7 +122,10 @@ def build(out_path, gap=0.0, marks=True, suits_=SUIT_ORDER, ranks=RANKS):
                 draw_card(c, theme, rank)
         if marks:
             _crop_marks(c, gap)
-            _caption(c, theme, gap)
+            _caption(c, gap,
+                     f"{theme.game.title()}  -  {theme.suit}  2-10   "
+                     f"card 63.5 x 88.9 mm (poker / Bicycle)   "
+                     f"print at 100%, no scaling")
         c.showPage()
     c.save()
     return out_path
