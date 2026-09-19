@@ -4,8 +4,6 @@ from __future__ import annotations
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from reportlab.lib.utils import ImageReader
-
 from .card import draw_card
 from . import composed
 from .imagecards import load_all
@@ -65,6 +63,7 @@ def build_images(out_path, gap=0.0, marks=True, ranks=None):
     cards = load_all()
     order = [r for r in (ranks or RANKS)
              if r in cards or r in composed.LAYOUT]
+    del cards
 
     c = canvas.Canvas(out_path, pagesize=(PAGE_W, PAGE_H))
     c.setTitle("Dota 2 playing cards")
@@ -80,10 +79,7 @@ def build_images(out_path, gap=0.0, marks=True, ranks=None):
             y = oy + (ROWS - 1 - row) * (CARD_H + gap)
             with state(c):
                 c.translate(x, y)
-                if rank in composed.LAYOUT:
-                    composed.draw(c, rank)
-                else:
-                    c.drawImage(ImageReader(cards[rank]), 0, 0, CARD_W, CARD_H)
+                composed.draw(c, rank)
             _trim_line(c, x, y)
         if marks:
             _crop_marks(c, gap)
