@@ -5,6 +5,8 @@ roughly -0.8..0.8, then scaled to ``size``.
 """
 from __future__ import annotations
 
+import math
+
 from .config import path, state
 from .suits import _circle
 
@@ -56,72 +58,144 @@ def hollow_knight_mask(c, size, shell, eye):
 
 
 # --- Clash Royale: the battle crown -----------------------------------------
-def clash_royale_crown(c, size, gold, dark, light, gem):
+#: five square battlements over a blue band, as the crown appears in game
+_TEETH = (-0.390, -0.195, 0.000, 0.195, 0.390)
+_TOOTH_HW = 0.0725
+_TOOTH_TOP = 0.400
+_NOTCH_Y = 0.140
+_BAND_TOP = -0.060
+
+
+def _crown_body(c):
+    cmds = [("m", _TEETH[0] - _TOOTH_HW, _BAND_TOP),
+            ("l", _TEETH[0] - _TOOTH_HW, _TOOTH_TOP)]
+    for i, cx in enumerate(_TEETH):
+        cmds.append(("l", cx + _TOOTH_HW, _TOOTH_TOP))
+        if i < len(_TEETH) - 1:
+            cmds += [("l", cx + _TOOTH_HW, _NOTCH_Y),
+                     ("l", _TEETH[i + 1] - _TOOTH_HW, _NOTCH_Y),
+                     ("l", _TEETH[i + 1] - _TOOTH_HW, _TOOTH_TOP)]
+    cmds.append(("l", _TEETH[-1] + _TOOTH_HW, _BAND_TOP))
+    cmds.append(("z",))
+    return path(c, *cmds)
+
+
+def clash_royale_crown(c, size, gold, gold_d, gold_l, blue, blue_d, gem):
     with state(c):
         c.scale(size, size)
         c.setLineJoin(1)
-        c.setLineCap(1)
-        c.setStrokeColor(dark)
-        c.setLineWidth(0.055)
+        c.setLineWidth(0.042)
 
-        body = path(
+        c.setStrokeColor(gold_d)
+        c.setFillColor(gold)
+        c.drawPath(_crown_body(c), fill=1, stroke=1)
+
+        # lit top face of every battlement, so the rim reads as having depth
+        for cx in _TEETH:
+            c.setFillColor(gold_l)
+            c.setStrokeColor(gold_d)
+            c.setLineWidth(0.030)
+            c.drawPath(path(c, ("m", cx - _TOOTH_HW, _TOOTH_TOP),
+                            ("l", cx + _TOOTH_HW, _TOOTH_TOP),
+                            ("l", cx + _TOOTH_HW, _TOOTH_TOP - 0.052),
+                            ("l", cx - _TOOTH_HW, _TOOTH_TOP - 0.052), ("z",)),
+                       fill=1, stroke=1)
+
+        # blue band, barrelled the way a cylinder reads from slightly above
+        band = path(
             c,
-            ("m", -0.450, -0.240),
-            ("c", -0.450, -0.050, -0.440, 0.060, -0.430, 0.130),
-            ("c", -0.360, 0.060, -0.280, -0.040, -0.185, -0.105),
-            ("c", -0.105, -0.045, -0.045, 0.080, -0.018, 0.225),
-            ("c", -0.006, 0.225, 0.006, 0.225, 0.018, 0.225),
-            ("c", 0.045, 0.080, 0.105, -0.045, 0.185, -0.105),
-            ("c", 0.280, -0.040, 0.360, 0.060, 0.430, 0.130),
-            ("c", 0.440, 0.060, 0.450, -0.050, 0.450, -0.240),
+            ("m", -0.500, -0.050),
+            ("c", -0.500, -0.300, -0.480, -0.400, -0.440, -0.448),
+            ("c", -0.250, -0.512, 0.250, -0.512, 0.440, -0.448),
+            ("c", 0.480, -0.400, 0.500, -0.300, 0.500, -0.050),
+            ("c", 0.250, -0.112, -0.250, -0.112, -0.500, -0.050),
             ("z",),
         )
-        c.setFillColor(gold)
-        c.drawPath(body, fill=1, stroke=1)
-
-        band = path(c, ("m", -0.480, -0.470), ("l", 0.480, -0.470),
-                    ("l", 0.480, -0.220), ("l", -0.480, -0.220), ("z",))
-        c.setFillColor(gold)
+        c.setFillColor(blue)
+        c.setStrokeColor(blue_d)
+        c.setLineWidth(0.042)
         c.drawPath(band, fill=1, stroke=1)
 
-        for cx, cy, r in ((-0.435, 0.205, 0.100), (0.0, 0.305, 0.115), (0.435, 0.205, 0.100)):
-            c.setFillColor(gold)
-            c.drawPath(_circle(c, cx, cy, r), fill=1, stroke=1)
-            _blob(c, cx - r * 0.28, cy + r * 0.34, r * 0.34, r * 0.24, 30, light)
-
         c.setFillColor(gem)
-        c.drawPath(path(c, ("m", 0.0, -0.245), ("l", 0.085, -0.345),
-                        ("l", 0.0, -0.445), ("l", -0.085, -0.345), ("z",)),
+        c.setStrokeColor(gold_d)
+        c.setLineWidth(0.030)
+        c.drawPath(path(c, ("m", 0.0, -0.148), ("l", 0.110, -0.282),
+                        ("l", 0.0, -0.416), ("l", -0.110, -0.282), ("z",)),
                    fill=1, stroke=1)
 
 
 # --- Dota 2: the Immortal rank medal ----------------------------------------
-def dota_immortal(c, size, gold, dark, field, gem):
+_FEATHERS = ((16, 0.54, 0.108), (45, 0.60, 0.102), (73, 0.47, 0.086))
+
+
+def _feather(c, ln, wd):
+    return path(
+        c,
+        ("m", 0.0, 0.0),
+        ("c", ln * 0.34, wd, ln * 0.72, wd * 0.88, ln, 0.0),
+        ("c", ln * 0.72, -wd * 0.88, ln * 0.34, -wd, 0.0, 0.0),
+        ("z",),
+    )
+
+
+def dota_immortal(c, size, gold, gold_d, dark, ember, bright):
     with state(c):
         c.scale(size, size)
         c.setLineJoin(1)
-        c.setStrokeColor(dark)
-        c.setLineWidth(0.045)
 
+        # feathered wings
         for sx in (-1.0, 1.0):
-            c.setFillColor(gold)
-            c.drawPath(path(c, ("m", 0.175 * sx, 0.275), ("l", 0.620 * sx, 0.620),
-                            ("l", 0.600 * sx, 0.275), ("l", 0.380 * sx, 0.090),
-                            ("l", 0.215 * sx, 0.055), ("z",)), fill=1, stroke=1)
+            for i, (ang, ln, wd) in enumerate(_FEATHERS):
+                with state(c):
+                    c.translate(0.095 * sx, -0.010)
+                    c.rotate(ang * sx if sx > 0 else 180 - ang)
+                    c.setFillColor(ember if i == 1 else dark)
+                    c.setStrokeColor(gold_d)
+                    c.setLineWidth(0.040)
+                    c.drawPath(_feather(c, ln, wd), fill=1, stroke=1)
 
-        crest = path(c, ("m", 0.0, 0.620), ("l", 0.195, 0.255), ("l", 0.250, -0.130),
-                     ("l", 0.0, -0.620), ("l", -0.250, -0.130), ("l", -0.195, 0.255), ("z",))
+        # central body
+        c.setFillColor(dark)
+        c.setStrokeColor(gold_d)
+        c.setLineWidth(0.040)
+        c.drawPath(path(c, ("m", 0.0, 0.330),
+                        ("c", 0.105, 0.250, 0.135, 0.020, 0.105, -0.170),
+                        ("c", 0.065, -0.320, -0.065, -0.320, -0.105, -0.170),
+                        ("c", -0.135, 0.020, -0.105, 0.250, 0.0, 0.330), ("z",)),
+                   fill=1, stroke=1)
+
+        # starburst over the body
+        with state(c):
+            c.translate(0.0, 0.045)
+            c.setFillColor(bright)
+            c.setStrokeColor(gold_d)
+            c.setLineWidth(0.026)
+            pts = []
+            for k in range(16):
+                a = math.radians(k * 22.5)
+                r = 0.215 if k % 4 == 0 else (0.115 if k % 2 == 0 else 0.052)
+                pts.append((r * math.cos(a), r * math.sin(a)))
+            cmds = [("m", pts[0][0], pts[0][1])] + [("l", x, y) for x, y in pts[1:]] + [("z",)]
+            c.drawPath(path(c, *cmds), fill=1, stroke=1)
+
+        # spire with crossguard
         c.setFillColor(gold)
-        c.drawPath(crest, fill=1, stroke=1)
+        c.setStrokeColor(gold_d)
+        c.setLineWidth(0.030)
+        c.drawPath(path(c, ("m", -0.026, 0.300), ("l", -0.026, 0.520), ("l", 0.0, 0.610),
+                        ("l", 0.026, 0.520), ("l", 0.026, 0.300), ("z",)), fill=1, stroke=1)
+        c.drawPath(path(c, ("m", -0.105, 0.400), ("l", 0.105, 0.400),
+                        ("l", 0.105, 0.440), ("l", -0.105, 0.440), ("z",)), fill=1, stroke=1)
 
-        inner = path(c, ("m", 0.0, 0.410), ("l", 0.118, 0.195), ("l", 0.155, -0.105),
-                     ("l", 0.0, -0.405), ("l", -0.155, -0.105), ("l", -0.118, 0.195), ("z",))
-        c.setFillColor(field)
-        c.setLineWidth(0.032)
-        c.drawPath(inner, fill=1, stroke=1)
-
-        c.setFillColor(gem)
-        c.drawPath(_circle(c, 0.0, 0.020, 0.105), fill=1, stroke=1)
+        # plinth
+        c.setFillColor(gold)
+        c.setLineWidth(0.036)
+        c.drawPath(path(c, ("m", -0.205, -0.330), ("l", 0.205, -0.330),
+                        ("l", 0.165, -0.520), ("l", -0.165, -0.520), ("z",)), fill=1, stroke=1)
+        c.setFillColor(dark)
+        c.setLineWidth(0.026)
+        c.drawPath(path(c, ("m", -0.135, -0.372), ("l", 0.135, -0.372),
+                        ("l", 0.112, -0.478), ("l", -0.112, -0.478), ("z",)), fill=1, stroke=1)
 
 
 # --- Apex Legends: the mark -------------------------------------------------
@@ -131,21 +205,21 @@ def apex_mark(c, size, main, dark, light):
         c.setLineJoin(0)
         body = path(
             c,
-            ("m", 0.000, 0.640),
-            ("l", 0.258, -0.030),
-            ("l", 0.258, -0.215),
-            ("l", 0.425, -0.215),
-            ("l", 0.425, -0.620),
-            ("l", 0.185, -0.620),
-            ("l", 0.000, -0.215),
-            ("l", -0.185, -0.620),
-            ("l", -0.425, -0.620),
-            ("l", -0.425, -0.215),
-            ("l", -0.258, -0.215),
-            ("l", -0.258, -0.030),
+            ("m", 0.000, 0.620),
+            ("l", 0.300, -0.120),
+            ("l", 0.300, -0.255),
+            ("l", 0.470, -0.255),
+            ("l", 0.470, -0.620),
+            ("l", 0.215, -0.620),
+            ("l", 0.000, -0.075),
+            ("l", -0.215, -0.620),
+            ("l", -0.470, -0.620),
+            ("l", -0.470, -0.255),
+            ("l", -0.300, -0.255),
+            ("l", -0.300, -0.120),
             ("z",),
         )
         c.setFillColor(main)
         c.setStrokeColor(dark)
-        c.setLineWidth(0.040)
+        c.setLineWidth(0.038)
         c.drawPath(body, fill=1, stroke=1)

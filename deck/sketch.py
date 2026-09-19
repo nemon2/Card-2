@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from .config import path, state
 
-LW = 0.052          # default stroke weight, in unit-box terms
-AMP = 0.011         # default wobble amplitude
+LW = 0.040          # default stroke weight, in unit-box terms
+AMP = 0.0075        # default wobble amplitude
 
 
 def _noise(seed, i):

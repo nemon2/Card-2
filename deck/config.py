@@ -29,14 +29,14 @@ FRAME_INSET = 3.2 * mm
 FRAME_R = 2.6 * mm
 
 # --- Pip field -------------------------------------------------------------
-PIP_TOP = CARD_H - 23.5 * mm                # centre of the top pip row
-PIP_BOT = 23.5 * mm                         # centre of the bottom pip row
+PIP_TOP = CARD_H - 26.0 * mm                # centre of the top pip row
+PIP_BOT = 26.0 * mm                         # centre of the bottom pip row
 PIP_HALF_SPAN = 14.0 * mm                   # left/right column offset
-PIP_SIZE = 9.6 * mm                        # icon bounding box
+PIP_SIZE = 9.0 * mm                        # icon bounding box
 
 # Easter-egg character, sitting in the clear band below the bottom pip row.
-CHAR_CY = 10.8 * mm
-CHAR_SIZE = 11.6 * mm
+CHAR_CY = 12.3 * mm
+CHAR_SIZE = 15.5 * mm
 
 # --- Corner index ----------------------------------------------------------
 INDEX_X = 6.9 * mm                          # centre line of the index column

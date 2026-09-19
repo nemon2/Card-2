@@ -46,14 +46,18 @@ CR_INK = hx("#17365c")
 CR_GOLD = hx("#f0b32e")
 CR_GOLD_D = hx("#6d4207")
 CR_GOLD_L = hx("#ffeaa8")
-CR_GEM = hx("#2a9fd6")
+CR_BLUE = hx("#2fb0e8")
+CR_BLUE_D = hx("#186a96")
+CR_GEM = hx("#f5c33c")
 
 # --- Dota 2 -----------------------------------------------------------------
 DT_INK = hx("#7a1518")
 DT_RED = hx("#a81f1f")
 DT_GOLD = hx("#d2a03c")
 DT_GOLD_D = hx("#66380f")
-DT_GOLD_L = hx("#fff0bc")
+DT_GOLD_L = hx("#ffe9a8")
+DT_DARK = hx("#a52424")
+DT_EMBER = hx("#d9822c")
 
 # --- Apex Legends -----------------------------------------------------------
 AP_INK = hx("#8c2a14")
@@ -74,7 +78,7 @@ THEMES = {
         rank_font="Lilita", label_font="Lilita",
         ink=CR_INK, index=CR_INK, suit_color=CR_INK, frame=CR_GOLD,
         draw_pip=lambda c, s: icons.clash_royale_crown(
-            c, s, CR_GOLD, CR_GOLD_D, CR_GOLD_L, CR_GEM),
+            c, s, CR_GOLD, CR_GOLD_D, CR_GOLD_L, CR_BLUE, CR_BLUE_D, CR_GEM),
         label_size=5.2, label_tracking=0.9, rank_scale=0.96, pip_scale=1.00,
     ),
     "hearts": Theme(
@@ -82,8 +86,8 @@ THEMES = {
         rank_font="Cinzel", label_font="Marcellus",
         ink=DT_INK, index=DT_RED, suit_color=DT_RED, frame=DT_GOLD,
         draw_pip=lambda c, s: icons.dota_immortal(
-            c, s, DT_GOLD, DT_GOLD_D, DT_RED, DT_GOLD_L),
-        label_size=5.2, label_tracking=2.0, pip_scale=0.84,
+            c, s, DT_GOLD, DT_GOLD_D, DT_DARK, DT_EMBER, DT_GOLD_L),
+        label_size=5.2, label_tracking=2.0, pip_scale=0.90,
     ),
     "diamonds": Theme(
         key="apex-legends", suit="diamonds", game="APEX LEGENDS",
