@@ -10,16 +10,21 @@ suit, matching every other card.
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 
+import numpy as np
 from PIL import Image
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 
-from . import icons
 from .config import (CARD_H, CARD_W, INDEX_RANK_BASE, INDEX_RANK_SIZE,
                      INDEX_SUIT_SIZE, INDEX_SUIT_Y, hx, state)
 from .imagecards import SRC_DIR
+
+LOGO_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "assets", "marks", "dota-logo.jpg")
 
 RED = hx("#d6332b")
 INDEX_X = 9.0 * mm
@@ -45,6 +50,30 @@ LAYOUT = {
 }
 
 
+@lru_cache(maxsize=8)
+def logo_on(bg):
+    """The supplied Dota logo, flattened onto a background colour.
+
+    The file is red on white, so the white is turned back into coverage and
+    the mark is recomposed over the card's own colour - its counters then read
+    as the card showing through, the way the logo is meant to sit on a dark or
+    a light field. Recomposing beats an alpha channel here because the source
+    is a JPEG and its edges are already blended against white.
+    """
+    src = Image.open(LOGO_PATH).convert("RGB")
+    a = np.asarray(src).astype(float)
+
+    ink = np.array([240.0, 58.0, 45.0])            # the logo's red
+    cover = np.clip((255.0 - a[:, :, 1]) / (255.0 - ink[1]), 0.0, 1.0)
+
+    box = Image.fromarray((cover * 255).astype(np.uint8)).getbbox()
+    cover = cover[box[1]:box[3], box[0]:box[2]]
+
+    back = np.array([bg.red * 255.0, bg.green * 255.0, bg.blue * 255.0])
+    out = ink * cover[..., None] + back * (1.0 - cover[..., None])
+    return Image.fromarray(out.astype(np.uint8))
+
+
 def artwork(rank):
     spec = LAYOUT[rank]
     im = Image.open(os.path.join(SRC_DIR, spec["src"])).convert("RGB")
@@ -61,9 +90,10 @@ def _draw_index(c, rank, light):
         c.setFont("Grenze", size)
         c.setFillColor(RED)
         c.drawCentredString(INDEX_X, INDEX_RANK_BASE, rank)
-    with state(c):
-        c.translate(INDEX_X, INDEX_SUIT_Y)
-        icons.dota_logo(c, INDEX_SUIT_SIZE, RED, light)
+    mark = logo_on(light)
+    w = INDEX_SUIT_SIZE
+    h = w * mark.size[1] / mark.size[0]
+    c.drawImage(ImageReader(mark), INDEX_X - w / 2, INDEX_SUIT_Y - h / 2, w, h)
 
 
 def draw(c, rank):
