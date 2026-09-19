@@ -29,10 +29,14 @@ FRAME_INSET = 3.2 * mm
 FRAME_R = 2.6 * mm
 
 # --- Pip field -------------------------------------------------------------
-PIP_TOP = CARD_H - 16.5 * mm                # centre of the top pip row
-PIP_BOT = 16.5 * mm                         # centre of the bottom pip row
+PIP_TOP = CARD_H - 23.5 * mm                # centre of the top pip row
+PIP_BOT = 23.5 * mm                         # centre of the bottom pip row
 PIP_HALF_SPAN = 14.0 * mm                   # left/right column offset
-PIP_SIZE = 11.6 * mm                        # icon bounding box
+PIP_SIZE = 9.6 * mm                        # icon bounding box
+
+# Easter-egg character, sitting in the clear band below the bottom pip row.
+CHAR_CY = 10.8 * mm
+CHAR_SIZE = 11.6 * mm
 
 # --- Corner index ----------------------------------------------------------
 INDEX_X = 6.9 * mm                          # centre line of the index column
@@ -41,8 +45,10 @@ INDEX_RANK_SIZE = 20.5                      # points
 INDEX_SUIT_SIZE = 5.0 * mm
 INDEX_SUIT_Y = CARD_H - 18.2 * mm
 
-# Game wordmark, mirrored top and bottom so the card stays 180-symmetric.
-LABEL_BASE = CARD_H - 83.8 * mm
+# Game wordmark, centred just inside the top of the frame.
+LABEL_BASE = CARD_H - 7.8 * mm
+
+TRIM_LINE = 0.25            # pt - faint cut guide printed on the trim edge
 
 _FONT_FILES = {
     "Cinzel": "Cinzel-Bold.ttf",
@@ -75,16 +81,6 @@ def register_fonts() -> None:
 def hx(value: str) -> Color:
     """Hex string -> reportlab Color."""
     return HexColor(value)
-
-
-def fade(c: Color, a: float) -> Color:
-    """Same colour with a baked-in alpha.
-
-    reportlab's setFillColor/setStrokeColor re-apply the colour's own alpha,
-    which silently overwrites a preceding setFillAlpha, so translucent art has
-    to carry its alpha on the colour itself.
-    """
-    return Color(c.red, c.green, c.blue, alpha=a)
 
 
 @contextmanager

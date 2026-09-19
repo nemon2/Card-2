@@ -1,14 +1,16 @@
-"""Renders a single card: background, frame, pips, corner indices, wordmark."""
+"""Renders a single card: frame, pips, corner indices, wordmark, character."""
 from __future__ import annotations
 
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 
 from . import suits
-from .config import (CARD_H, CARD_W, FRAME_INSET, FRAME_R, INDEX_RANK_SIZE, fade,
-                     INDEX_RANK_TOP, INDEX_SUIT_SIZE, INDEX_SUIT_Y, LABEL_BASE,
-                     PIP_BOT, PIP_HALF_SPAN, PIP_SIZE, PIP_TOP,
-                     rounded_rect_path, state)
+from .characters import draw_character
+from .config import (CARD_H, CARD_W, CHAR_CY, CHAR_SIZE, FRAME_INSET, FRAME_R,
+                     INDEX_RANK_SIZE, INDEX_RANK_TOP, INDEX_SUIT_SIZE,
+                     INDEX_SUIT_Y, LABEL_BASE, PIP_BOT, PIP_HALF_SPAN,
+                     PIP_SIZE, PIP_TOP, TRIM_LINE, rounded_rect_path, state)
+from .themes import PAPER, TRIM
 
 L, C, R = -1.0, 0.0, 1.0
 
@@ -74,20 +76,26 @@ def _draw_pips(c, theme, rank):
 def _draw_frame(c, theme):
     i = FRAME_INSET
     with state(c):
+        # faint cut guide printed on the trim edge itself
+        c.setStrokeColor(TRIM)
+        c.setLineWidth(TRIM_LINE)
+        c.rect(0, 0, CARD_W, CARD_H, fill=0, stroke=1)
+
         c.setStrokeColor(theme.frame)
-        c.setStrokeAlpha(0.70)
-        c.setLineWidth(0.7)
+        c.setStrokeAlpha(0.85)
+        c.setLineWidth(0.8)
         c.drawPath(
             rounded_rect_path(c, i, i, CARD_W - 2 * i, CARD_H - 2 * i, FRAME_R),
             fill=0, stroke=1,
         )
-    if theme.corner:
-        theme.corner(c, CARD_W, CARD_H)
 
 
 def draw_card(c, theme, rank):
     """Draw one card with its lower-left corner at the current origin."""
-    theme.paint_background(c, CARD_W, CARD_H)
+    with state(c):
+        c.setFillColor(PAPER)
+        c.rect(0, 0, CARD_W, CARD_H, fill=1, stroke=0)
+
     _draw_frame(c, theme)
     _draw_pips(c, theme, rank)
 
@@ -99,6 +107,10 @@ def draw_card(c, theme, rank):
             _draw_index(c, theme, rank)
 
     with state(c):
-        c.setFillColor(fade(theme.frame, 0.72))
+        c.setFillColor(theme.frame)
         _tracked_centred(c, theme.game, theme.label_font, theme.label_size,
                          CARD_W / 2, LABEL_BASE, theme.label_tracking)
+
+    with state(c):
+        c.translate(CARD_W / 2, CHAR_CY)
+        draw_character(c, theme.suit, rank, CHAR_SIZE, theme.ink, theme.frame, PAPER)

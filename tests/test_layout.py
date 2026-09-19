@@ -4,8 +4,11 @@ from __future__ import annotations
 from reportlab.lib.units import mm
 
 from deck.card import PIP_LAYOUTS
-from deck.config import (CARD_H, CARD_W, COLS, PAGE_H, PAGE_W, RANKS, ROWS,
-                         PIP_BOT, PIP_HALF_SPAN, PIP_SIZE, PIP_TOP, SAFE)
+from deck.characters import CHARACTERS
+from deck.config import (CARD_H, CARD_W, CHAR_CY, CHAR_SIZE, COLS, PAGE_H,
+                         PAGE_W, RANKS, ROWS, PIP_BOT, PIP_HALF_SPAN, PIP_SIZE,
+                         PIP_TOP, SAFE)
+from deck.themes import SUIT_ORDER
 
 
 def test_card_is_standard_poker_size():
@@ -47,3 +50,18 @@ def test_pips_stay_inside_the_safe_area():
     assert CARD_W / 2 - PIP_HALF_SPAN - half >= SAFE
     assert PIP_BOT - half >= SAFE
     assert PIP_TOP + half <= CARD_H - SAFE
+
+
+def test_every_card_has_its_own_character():
+    for suit in SUIT_ORDER:
+        assert set(CHARACTERS[suit]) == set(RANKS), suit
+    names = [n for suit in CHARACTERS.values() for n, _ in suit.values()]
+    assert len(names) == 36
+    assert len(set(names)) == 36, "character names must be unique"
+
+
+def test_character_band_is_clear_of_pips_and_trim():
+    top = CHAR_CY + CHAR_SIZE / 2
+    bottom = CHAR_CY - CHAR_SIZE / 2
+    assert bottom >= SAFE, "character would sit in the cutting margin"
+    assert top <= PIP_BOT - PIP_SIZE / 2, "character would collide with the bottom pip row"
